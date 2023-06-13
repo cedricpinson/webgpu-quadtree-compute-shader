@@ -1,0 +1,8 @@
+{
+  "compilerOptions": {
+    "module": "ESNext",
+    "lib": ["esnext", "dom", "dom.iterable"],
+    "moduleResolution": "Node",
+    "typeRoots": [ "./node_modules/@webgpu/types", "./node_modules/@types"]
+  }
+}
