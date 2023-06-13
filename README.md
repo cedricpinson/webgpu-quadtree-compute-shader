@@ -4,12 +4,14 @@ This WebGPU sample evaluate quadtree on compute shader and draw resulting nodes 
 It's based on the paper ‘‘Quadtrees on the GPU’’  from Jonathan Dupuy, Jean-Claude Iehl, and Pierre Poulin.
 The idea is to evaluate the quadtree in the compute shader and display it directly using indirect draw call, so it means no CPU computation at all. Buffers used to evaluate the quadtree are switched every frame (result at a frame n will be used as source at the frame n+1).
 
-(earth)[https://cedricpinson.github.io/webgpu-quadtree-compute-shader/elevation-texture.mp4]
+[link to the example](https://cedricpinson.github.io/webgpu-quadtree-compute-shader/)
+
+https://cedricpinson.github.io/webgpu-quadtree-compute-shader/elevation-texture.mp4
 
 
 # Encoding Node
 
-(quads)[https://cedricpinson.github.io/webgpu-quadtree-compute-shader/webgpu-quad.mp4]
+https://cedricpinson.github.io/webgpu-quadtree-compute-shader/webgpu-quad.mp4
 
 * A node is encoded with uint 32 bits
 * 2 bits are used to encode a quad in node
