@@ -34,10 +34,16 @@ Some node example (x,y,size) size is 1.0/level
 ```
 
 
-
 ## links
-http://vterrain.org/LOD/Implementations/
-https://jadkhoury.github.io/files/MasterThesisFinal.pdf
+*  [https://jadkhoury.github.io/files/MasterThesisFinal.pdf](https://jadkhoury.github.io/files/MasterThesisFinal.pdf)
+*  [https://github.com/jadkhoury/TessellationDemo](https://github.com/jadkhoury/TessellationDemo)
+
+## Earth images
+*  [https://visibleearth.nasa.gov/images/73934/topography/84331](https://visibleearth.nasa.gov/images/73934/topography/84331l)
+*  [https://visibleearth.nasa.gov/images/73909/december-blue-marble-next-generation-w-topography-and-bathymetry/73910l](https://visibleearth.nasa.gov/images/73909/december-blue-marble-next-generation-w-topography-and-bathymetry/73910l)
+* https://gisgeography.com/free-global-dem-data-sources/
+
+
 
 ## Install
 ```
