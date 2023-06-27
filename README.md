@@ -6,12 +6,19 @@ The idea is to evaluate the quadtree in the compute shader and display it direct
 
 [link to the example](https://cedricpinson.github.io/webgpu-quadtree-compute-shader/)
 
-https://cedricpinson.github.io/webgpu-quadtree-compute-shader/elevation-texture.mp4
+
+
+https://github.com/cedricpinson/webgpu-quadtree-compute-shader/assets/351686/fc39b609-d742-4a42-a540-c8a44053381e
+
 
 
 # Encoding Node
 
-https://cedricpinson.github.io/webgpu-quadtree-compute-shader/webgpu-quad.mp4
+
+
+https://github.com/cedricpinson/webgpu-quadtree-compute-shader/assets/351686/0e6bac19-a9ee-41ab-8e47-0c9b546d001b
+
+
 
 * A node is encoded with uint 32 bits
 * 2 bits are used to encode a quad in node
