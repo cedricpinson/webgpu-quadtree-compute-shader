@@ -5,7 +5,7 @@ import { initQuadTree, QuadTreeFunctions } from "./quadtree"
 import { Pane } from "tweakpane"
 import { setupDragUI, translateUI } from "./drag"
 import { resetZoom, setupManipulator, updateManipulator, resetManipulator } from "./manipulator"
-import { TabItemController } from "@tweakpane/core/dist/cjs/blade/tab/controller/tab-item"
+// import { TabItemController } from "@tweakpane/core/dist/cjs/blade/tab/controller/tab-item"
 
 export { };
 
@@ -30,7 +30,7 @@ const ModelConfig = {
             min: 0.00000002,
             // min: 0.00000005
             max: 0.0000005,
-            lodScaleFactor: 0.0000001,
+            lodScaleFactor: 0.00000025,
             format: (v: number) => v.toFixed(10),
         },
         evaluateRealCamera: false,
