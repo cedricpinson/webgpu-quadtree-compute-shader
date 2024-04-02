@@ -137,15 +137,19 @@ async function initWebGPU(canvas: HTMLCanvasElement) {
     const adapter = await navigator.gpu.requestAdapter();
     let device = null;
     let hasQueryTimer = false;
-    try {
-        device = await adapter.requestDevice({
-            requiredFeatures: Array("timestamp-query"),
-        });
+    let requiredFeatures = [];
+    if (adapter.features.has('timestamp-query') === true) {
+        requiredFeatures.push('timestamp-query');
         hasQueryTimer = true;
+    }
+
+    device = await adapter.requestDevice({
+        requiredFeatures
+    });
+
+    if (hasQueryTimer) {
         console.info("timestamp enabled");
-    } catch (err) {
-        console.error(err);
-        device = await adapter.requestDevice();
+    } else {
         console.info("timestamp query not enabled");
     }
 
@@ -167,7 +171,7 @@ async function initWebGPU(canvas: HTMLCanvasElement) {
     return wgpu;
 }
 
-function saveFile(data, filename:string = 'export.json') {
+function saveFile(data, filename: string = 'export.json') {
 
     if (!data) {
         console.error('Console.save: No data')

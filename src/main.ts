@@ -75,7 +75,7 @@ function setupUI() {
     });
 
 
-    const setupTabModel = function(config: any, tabIndex: number) {
+    const setupTabModel = function (config: any, tabIndex: number) {
         tab.pages[tabIndex].addInput(config, 'lodScaleFactor', {
             min: config.min, max: config.max,
             format: config.format,
@@ -97,20 +97,20 @@ function setupUI() {
             app.config.evaluateLodIn3D = false;
             app.config.evaluateRealCamera = false;
         } else {
-            config =  ModelConfig.earth;
+            config = ModelConfig.earth;
             app.config.projectToEarth = true;
             app.config.evaluateLodIn3D = true;
             app.config.evaluateRealCamera = config.evaluateRealCamera;
         }
-        app.config.lodScaleFactor = config.lodScaleFactor.lodScaleFactor ;
+        app.config.lodScaleFactor = config.lodScaleFactor.lodScaleFactor;
         resetZoom(app.manipulator, config.radius * 2, config.radius, config.center);
         // pane.refresh();
         console.log(config);
         console.log(app.config);
     });
 
-    setupTabModel( ModelConfig.plane.lodScaleFactor, 0 );
-    setupTabModel( ModelConfig.earth.lodScaleFactor, 1 );
+    setupTabModel(ModelConfig.plane.lodScaleFactor, 0);
+    setupTabModel(ModelConfig.earth.lodScaleFactor, 1);
     tab.pages[1].addInput(ModelConfig.earth, 'evaluateRealCamera').on('change', (ev) => {
         app.config.evaluateRealCamera = ev.value;
     });
@@ -161,8 +161,6 @@ function setupUI() {
     pane.addMonitor(app.config, 'updateQuadTree', precision5);
     pane.addMonitor(app.config, 'renderQuadTree', precision5);
 
-    pane.addMonitor(app.config, 'updateQuadTree', precision5);
-    pane.addMonitor(app.config, 'renderQuadTree', precision5);
     pane.addMonitor(app.manipulator.zoom, 'current');
     pane.addButton({ title: 'export Preset' }).on('click', () => {
         const preset = pane.exportPreset();
@@ -293,7 +291,7 @@ export async function main() {
                 // the camera always look at the center of earth (0,0,0)
                 // we compute a position around earth and then use a lookat
 
-                mat4.rotateX(app.modelMatrix, app.modelMatrix, Math.PI*0.5);
+                mat4.rotateX(app.modelMatrix, app.modelMatrix, Math.PI * 0.5);
                 mat4.rotateY(app.modelMatrix, app.modelMatrix, rotate + -xValue);
                 mat4.rotateX(app.modelMatrix, app.modelMatrix, -yValue);
 

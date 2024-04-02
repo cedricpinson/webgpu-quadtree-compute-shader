@@ -28,7 +28,7 @@ function getQuadTreeComputeShader(workgroupSize: number) {
     return define + NodeFunctions + ComputeShader;
 }
 
-function timestamp(query: QueryCounter, encoder: GPUCommandEncoder, label: String) {
+function timestamp(query: QueryCounter, label: String) {
     if (!app.wgpu.hasQueryTimer) {
         return;
     }
@@ -37,9 +37,10 @@ function timestamp(query: QueryCounter, encoder: GPUCommandEncoder, label: Strin
         console.error("too many query", query.index, label);
         return;
     }
-    encoder.writeTimestamp(query.querySet, query.index);
+    const index = query.index;
     query.labelMap.set(label, query.index);
     query.index++;
+    return index;
 }
 
 function createQuadGeometry(grid: GridGeometry): any {
@@ -93,7 +94,7 @@ function createQuadGeometry(grid: GridGeometry): any {
 function createQuadtreeData(maxLevel: number, elevationTexture: GPUTexture, earthTexture: GPUTexture, annotationTexture) {
 
     const device = app.wgpu.device;
-    const computeShader = getQuadTreeComputeShader(32);
+    const computeShader = getQuadTreeComputeShader(64);
 
     // helper to create buffer for nodes
     // one buffer to write the indirect call + one buffer for the node
@@ -257,7 +258,7 @@ function createQuadtreeData(maxLevel: number, elevationTexture: GPUTexture, eart
 
 
 
-    const createRenderGeometry = function (primitive: GPUPrimitiveTopology, shaderModule: GPUShaderModule) : RenderGeometry {
+    const createRenderGeometry = function (primitive: GPUPrimitiveTopology, shaderModule: GPUShaderModule): RenderGeometry {
         const pipeline = app.wgpu.device.createRenderPipeline({
             layout: 'auto',
             vertex: {
@@ -295,30 +296,30 @@ function createQuadtreeData(maxLevel: number, elevationTexture: GPUTexture, eart
         const bindGroup = app.wgpu.device.createBindGroup({
             layout: layout,
             entries: [
-            {
-                binding: 0,
-                resource: {
-                    buffer: instanceBuffer,
+                {
+                    binding: 0,
+                    resource: {
+                        buffer: instanceBuffer,
+                    },
                 },
-            },
-            {
-                binding: 1,
-                resource: {
-                    buffer: quadTreeConfigBuffer,
+                {
+                    binding: 1,
+                    resource: {
+                        buffer: quadTreeConfigBuffer,
+                    },
                 },
-            },
-            {
-                binding: 2,
-                resource: sampler
-            },
-            {
-                binding: 3,
-                resource: elevationTexture.createView()
-            },
-            {
-                binding: 4,
-                resource: earthTexture.createView()
-            }
+                {
+                    binding: 2,
+                    resource: sampler
+                },
+                {
+                    binding: 3,
+                    resource: elevationTexture.createView()
+                },
+                {
+                    binding: 4,
+                    resource: earthTexture.createView()
+                }
             ]
         });
 
@@ -328,8 +329,8 @@ function createQuadtreeData(maxLevel: number, elevationTexture: GPUTexture, eart
         };
     };
 
-    const geometry1 : RenderGeometry = createQuadGeometry(Grid1);
-    const geometry4 : RenderGeometry = createQuadGeometry(Grid4);
+    const geometry1: RenderGeometry = createQuadGeometry(Grid1);
+    const geometry4: RenderGeometry = createQuadGeometry(Grid4);
 
     // create one pipeline for solid and wireframe
     const drawQuadPipeline = createRenderGeometry("triangle-list", app.wgpu.device.createShaderModule({
@@ -432,12 +433,12 @@ function updateDataBuffer(config: QuadTreeConfig, buffer: GPUBuffer) {
         offset += 4;
     }
 
-    tmpView.setUint32 (offset +  0, config.projectToEarth == true ? 1 : 0, endianness);
-    tmpView.setUint32 (offset +  4, config.evaluateLodIn3D == true ? 1 : 0, endianness);
-    tmpView.setUint32 (offset +  8, config.displayTexture, endianness);
+    tmpView.setUint32(offset + 0, config.projectToEarth == true ? 1 : 0, endianness);
+    tmpView.setUint32(offset + 4, config.evaluateLodIn3D == true ? 1 : 0, endianness);
+    tmpView.setUint32(offset + 8, config.displayTexture, endianness);
     tmpView.setFloat32(offset + 12, config.elevationScale, endianness);
-    tmpView.setUint32 (offset + 16, config.evaluateRealCamera == true ? 1 : 0, endianness);
-    tmpView.setFloat32 (offset + 20, config.lodScaleFactor, endianness);
+    tmpView.setUint32(offset + 16, config.evaluateRealCamera == true ? 1 : 0, endianness);
+    tmpView.setFloat32(offset + 20, config.lodScaleFactor, endianness);
 
     app.wgpu.device.queue.writeBuffer(buffer, 0, tmpView, 0, QuadTreeConfigSize);
 }
@@ -465,8 +466,23 @@ async function updateQuadTree(pingPongBuffer: QuadTree) {
     ]));
 
     const commandEncoder = device.createCommandEncoder();
-    timestamp(pingPongBuffer.query, commandEncoder, 'updateStart');
-    const pass = commandEncoder.beginComputePass();
+
+    let timestamps = {};
+    if (app.wgpu.hasQueryTimer) {
+
+        const queryStartIndex = timestamp(pingPongBuffer.query, 'updateStart');
+        const queryEndIndex = timestamp(pingPongBuffer.query, 'updateEnd');
+        timestamps = {
+            timestampWrites: {
+                querySet: pingPongBuffer.query.querySet,
+                beginningOfPassWriteIndex: queryStartIndex,
+                endOfPassWriteIndex: queryEndIndex,
+            }
+        }
+
+    }
+
+    const pass = commandEncoder.beginComputePass(timestamps);
 
     pass.setPipeline(pingPongBuffer.computePipeline);
 
@@ -480,7 +496,6 @@ async function updateQuadTree(pingPongBuffer: QuadTree) {
         debugBuffers = addDebugComputeCommands(commandEncoder, pingPongBuffer, index % 2, (index + 1) % 2);
     }
 
-    timestamp(pingPongBuffer.query, commandEncoder, "updateEnd");
     device.queue.submit([commandEncoder.finish()]);
 
     if (debugBuffers) {
@@ -540,27 +555,40 @@ async function renderQuads(pingPongBuffer: QuadTree) {
 
     const commandEncoder = app.wgpu.device.createCommandEncoder();
 
-    timestamp(pingPongBuffer.query, commandEncoder, "renderStart");
-
     const index = pingPongBuffer.frame;
 
-    const pass = commandEncoder.beginRenderPass(getRendePassDesc(pingPongBuffer));
+    let renderPassDesc = getRendePassDesc(pingPongBuffer);
+
+    if (app.wgpu.hasQueryTimer) {
+
+        const timestampsStart = timestamp(pingPongBuffer.query, "renderStart");
+        const timestampsEnd = timestamp(pingPongBuffer.query, "renderEnd");
+
+        let timestamps = {
+            querySet: pingPongBuffer.query.querySet,
+            beginningOfPassWriteIndex: timestampsStart,
+            endOfPassWriteIndex: timestampsEnd
+        };
+
+        renderPassDesc['timestampWrites'] = timestamps;
+    }
+    const pass = commandEncoder.beginRenderPass(renderPassDesc);
     const geometry = pingPongBuffer.gridGeometries[app.config.gridResolution];
 
     // solid
     if (true) {
-    pass.setPipeline(pingPongBuffer.renderQuad.pipeline);
-    pass.setVertexBuffer(0, geometry.solid.position);
-    pass.setIndexBuffer(geometry.solid.index, 'uint16', 0);
-    pass.setBindGroup(0, pingPongBuffer.renderQuad.bindGroup);
-    pass.drawIndexedIndirect(pingPongBuffer.drawIndirect, 0);
+        pass.setPipeline(pingPongBuffer.renderQuad.pipeline);
+        pass.setVertexBuffer(0, geometry.solid.position);
+        pass.setIndexBuffer(geometry.solid.index, 'uint16', 0);
+        pass.setBindGroup(0, pingPongBuffer.renderQuad.bindGroup);
+        pass.drawIndexedIndirect(pingPongBuffer.drawIndirect, 0);
 
-    // wireframe
-    pass.setPipeline(pingPongBuffer.renderWireframe.pipeline);
-    pass.setVertexBuffer(0, geometry.wireframe.position);
-    pass.setIndexBuffer(geometry.wireframe.index, 'uint16', 0);
-    pass.setBindGroup(0, pingPongBuffer.renderWireframe.bindGroup);
-    pass.drawIndexedIndirect(pingPongBuffer.drawIndirect, 8 * 4);
+        // wireframe
+        pass.setPipeline(pingPongBuffer.renderWireframe.pipeline);
+        pass.setVertexBuffer(0, geometry.wireframe.position);
+        pass.setIndexBuffer(geometry.wireframe.index, 'uint16', 0);
+        pass.setBindGroup(0, pingPongBuffer.renderWireframe.bindGroup);
+        pass.drawIndexedIndirect(pingPongBuffer.drawIndirect, 8 * 4);
     }
 
     if (false) {
@@ -581,8 +609,6 @@ async function renderQuads(pingPongBuffer: QuadTree) {
     if (app.config.debugBuffers) {
         //debugBuffer = addDebugRenderCommands(commandEncoder, pingPongBuffer.vertexBuffer, pingPongBuffer.drawIndirect);
     }
-
-    timestamp(pingPongBuffer.query, commandEncoder, "renderEnd");
 
     if (app.wgpu.hasQueryTimer) {
         commandEncoder.resolveQuerySet(
