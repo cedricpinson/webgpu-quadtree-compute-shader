@@ -56,6 +56,15 @@ function checkSupport() {
 // I dont get all the details but it works, I am not interested to understand the details right now
 function setupResize(canvas: HTMLCanvasElement, resizeCallback: Function) {
 
+
+    // Check if we're on mobile to force DPR to 1 for better performance
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    if (isMobile || true) {
+        // Force DPR to 1 on mobile devices
+        window.devicePixelRatio = 1;
+        console.log("Mobile device detected, forcing DPR to 1");
+    }
+
     function onResize(entries: any) {
 
         for (const entry of entries) {

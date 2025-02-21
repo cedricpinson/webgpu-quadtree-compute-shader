@@ -59,67 +59,108 @@ function setupManipulator(element: HTMLCanvasElement, manipulator: Manipulator, 
         let distMin = manipulator.sceneCenter;
         let distMax = 2.0 * manipulator.sceneRadius;
         let range = distMax - distMin;
-        let value =( manipulator.zoom.current - distMin) / range;
+        let value = (manipulator.zoom.current - distMin) / range;
         let smooth = smoothStep(value);
         return Math.max(0.001, value);
     }
 
-    // connect weel event
-    const onWeelEvent = function (event: WheelEvent) {
-        let scaler = 0.001 * manipulator.sceneRadius;
-        const distance = scaler * scaleFromDistance();
-        wheel += event.deltaY * distance;
-        wheel = Math.max(wheel, manipulator.sceneCenter);
-        wheel = Math.min(wheel, manipulator.sceneRadius * 3.0);
-        // //Math.max(0.001, manipulator.zoom.current + (distance * event.deltaY * scale))
-        // console.log(wheel, distance, event.deltaY * distance, "zoom value", manipulator.zoom.current);
-        setInputTargets([manipulator.zoom], [wheel]);
-        event.stopPropagation();
-        event.preventDefault();
-        return false;
-    };
-
-    let mouseDown = false;
-    let x = 0;
-    let y = 0;
+    // Combined state for both mouse and touch
+    let isPointerDown = false;
+    let lastX = 0;
+    let lastY = 0;
     let xglobal = 0;
     let yglobal = 0;
+    let lastPinchDistance = 0;
 
-    // connect mouse x/y
-    const onMouseMoveEvent = function (event: MouseEvent) {
+    // Handle zoom from either wheel or pinch
+    const handleZoom = function (delta: number) {
+        let scaler = 0.001 * manipulator.sceneRadius;
+        const distance = scaler * scaleFromDistance();
+        wheel += delta * distance;
+        wheel = Math.max(wheel, manipulator.sceneCenter);
+        wheel = Math.min(wheel, manipulator.sceneRadius * 3.0);
+        setInputTargets([manipulator.zoom], [wheel]);
+    };
 
-        if (!mouseDown) {
-            return false;
-        }
+    // Handle pan from either mouse or single touch
+    const handlePan = function (currentX: number, currentY: number) {
+        if (!isPointerDown) return;
 
         const distance = scaleFromDistance() * 0.4;
-        xglobal += distance * (event.offsetX - x);
-        yglobal += distance * (event.offsetY - y);
-        x = event.offsetX;
-        y = event.offsetY;
+        xglobal += distance * (currentX - lastX);
+        yglobal += distance * (currentY - lastY);
+        lastX = currentX;
+        lastY = currentY;
         setInputTargets([manipulator.x, manipulator.y], [xglobal, yglobal]);
-        return false;
     };
 
-    // connect mouse x/y
-    const onMouseDownEvent = function (event: MouseEvent) {
-        mouseDown = true;
-        x = event.offsetX;
-        y = event.offsetY;
-        return false;
-    };
+    // Mouse Events
+    element.addEventListener('mousedown', (event: MouseEvent) => {
+        isPointerDown = true;
+        lastX = event.offsetX;
+        lastY = event.offsetY;
+    });
 
-    // connect mouse x/y
-    const onMouseUpEvent = function (event: WheelEvent) {
-        mouseDown = false;
-        return false;
-    };
+    element.addEventListener('mousemove', (event: MouseEvent) => {
+        handlePan(event.offsetX, event.offsetY);
+    });
 
-    window.addEventListener('wheel', onWeelEvent, { passive: false });
-    element.addEventListener('mousemove', onMouseMoveEvent);
-    element.addEventListener('mousedown', onMouseDownEvent);
-    element.addEventListener('mouseup', onMouseUpEvent);
+    element.addEventListener('mouseup', () => {
+        isPointerDown = false;
+    });
 
+    // Wheel zoom
+    window.addEventListener('wheel', (event: WheelEvent) => {
+        event.preventDefault();
+        handleZoom(event.deltaY);
+    }, { passive: false });
+
+    // Touch Events
+    element.addEventListener('touchstart', (event: TouchEvent) => {
+        event.preventDefault();
+        isPointerDown = true;
+
+        if (event.touches.length === 1) {
+            // Single touch for panning
+            lastX = event.touches[0].clientX;
+            lastY = event.touches[0].clientY;
+        } else if (event.touches.length === 2) {
+            // Two finger touch for zooming
+            const touch1 = event.touches[0];
+            const touch2 = event.touches[1];
+            lastPinchDistance = Math.hypot(
+                touch2.clientX - touch1.clientX,
+                touch2.clientY - touch1.clientY
+            );
+        }
+    }, { passive: false });
+
+    element.addEventListener('touchmove', (event: TouchEvent) => {
+        event.preventDefault();
+
+        if (event.touches.length === 1) {
+            // Handle panning
+            const touch = event.touches[0];
+            handlePan(touch.clientX, touch.clientY);
+        } else if (event.touches.length === 2) {
+            // Handle pinch zooming
+            const touch1 = event.touches[0];
+            const touch2 = event.touches[1];
+            const currentDistance = Math.hypot(
+                touch2.clientX - touch1.clientX,
+                touch2.clientY - touch1.clientY
+            );
+
+            const delta = lastPinchDistance - currentDistance;
+            handleZoom(delta);
+            lastPinchDistance = currentDistance;
+        }
+    }, { passive: false });
+
+    element.addEventListener('touchend', (event: TouchEvent) => {
+        event.preventDefault();
+        isPointerDown = false;
+    }, { passive: false });
 }
 
 export { Manipulator, updateManipulator, setupManipulator, resetManipulator, resetZoom };
