@@ -83,10 +83,10 @@ function setupManipulator(element: HTMLCanvasElement, manipulator: Manipulator, 
     };
 
     // Handle pan from either mouse or single touch
-    const handlePan = function (currentX: number, currentY: number) {
+    const handlePan = function (currentX: number, currentY: number, scale: number) {
         if (!isPointerDown) return;
 
-        const distance = scaleFromDistance() * 0.4;
+        const distance = scaleFromDistance() * 0.4 * scale;
         xglobal += distance * (currentX - lastX);
         yglobal += distance * (currentY - lastY);
         lastX = currentX;
@@ -102,7 +102,7 @@ function setupManipulator(element: HTMLCanvasElement, manipulator: Manipulator, 
     });
 
     element.addEventListener('mousemove', (event: MouseEvent) => {
-        handlePan(event.offsetX, event.offsetY);
+        handlePan(event.offsetX, event.offsetY, 1.0);
     });
 
     element.addEventListener('mouseup', () => {
@@ -141,7 +141,7 @@ function setupManipulator(element: HTMLCanvasElement, manipulator: Manipulator, 
         if (event.touches.length === 1) {
             // Handle panning
             const touch = event.touches[0];
-            handlePan(touch.clientX, touch.clientY);
+            handlePan(touch.clientX, touch.clientY, 0.5);
         } else if (event.touches.length === 2) {
             // Handle pinch zooming
             const touch1 = event.touches[0];
